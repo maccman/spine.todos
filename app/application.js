@@ -1,6 +1,8 @@
 (function($, Spine){
   
-  var con = new Spine.Controller("#tasks");
+  var con = Spine.Controller.create()
+  
+  con.sel = "#tasks";
     
   con.events = {
     "change   .item input[type=checkbox]": "toggle",
@@ -10,24 +12,26 @@
     
     "submit   form":                       "create",
     "click    .clear":                     "clear",
-    "render   .items":                     "render"
+    "render   .items":                     "renderCount"
   };
-    
-  // Show tasks
-  con.load(function(){
-    this.tasks    = this.el.find(".items");
-    this.count    = this.el.find(".countVal");
-    this.input    = this.el.find("form input");
-    
-    this.tasks.link(Task, function(){
-      var elements = $("#taskTemplate").tmpl(Task.all());
-      
-      $(this).empty();
-      $(this).append(elements);
-    });
-  });
   
-  con.extend({
+  con.elements = {
+    ".items":     "tasks",
+    ".countVal":  "count",
+    "form input": "input"
+  };
+        
+  con.include({
+    render: function(){
+      this.tasks.link(Task, function(){
+        var elements = $("#taskTemplate").tmpl(Task.all());
+      
+        $(this).empty();
+        $(this).append(elements);
+      });
+      this.tasks.render();
+    },
+    
     toggle: function(e){
       var task  = $(e.target).item();
       task.done = !task.done;
@@ -46,7 +50,7 @@
     
     closeEdit: function(e){
       if ( e.keyCode != 13 ) return;
-      $(e.target).parents("li").removeClass("editing");
+      $(e.target).parents(".item").removeClass("editing");
       $(e.target).item().updateAttributes({name: $(e.target).val()});
     },
     
@@ -60,14 +64,13 @@
       Task.destroyDone();
     },
     
-    render: function(){
+    renderCount: function(){
       this.count.text(Task.active().length);
     }
   });
-
-  // Initial render  
-  con.load(function(){
-    this.tasks.render();
+  
+  $(function(){
+    con.inst();
   });
   
 })(jQuery, Spine);
