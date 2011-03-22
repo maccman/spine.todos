@@ -3,6 +3,7 @@
 <head>
   <link rel="stylesheet" href="css/application.css" type="text/css" charset="utf-8">
 
+  <script src="lib/json2.js" type="text/javascript" charset="utf-8"></script>
   <script src="lib/jquery.js" type="text/javascript" charset="utf-8"></script>
   <script src="lib/jquery.tmpl.js" type="text/javascript" charset="utf-8"></script>
   <script src="lib/jquery.link.js" type="text/javascript" charset="utf-8"></script>
@@ -15,7 +16,7 @@
   
   <script type="text/x-jquery-tmpl" id="taskTemplate">
     <div class="item {{if done}}done{{/if}}">
-      <div class="view">
+      <div class="view" title="Double click to edit...">
         <input type="checkbox" {{if done}}checked="checked"{{/if}}> 
         <span>${name}</span> <a class="destroy"></a>
       </div>

@@ -1,59 +1,95 @@
-(function($, Spine){
+jQuery(function($){
   
-  var con = Spine.Controller.create()
-  
-  con.sel = "#tasks";
+  window.TaskController = Spine.Controller.create({
+    tag: "li",
     
-  con.events = {
-    "change   .item input[type=checkbox]": "toggle",
-    "click    .item .destroy":             "destroy",
-    "dblclick .item .view":                "edit",
-    "keypress .item input[type=text]":     "closeEdit",
+    events: {
+      "change   input[type=checkbox]": "toggle",
+      "click    .destroy":             "destroy",
+      "dblclick .view":                "edit",
+      "keypress input[type=text]":     "blurOnEnter",
+      "blur     input[type=text]":     "close"
+    },
     
-    "submit   form":                       "create",
-    "click    .clear":                     "clear",
-    "render   .items":                     "renderCount"
-  };
-  
-  con.elements = {
-    ".items":     "tasks",
-    ".countVal":  "count",
-    "form input": "input"
-  };
-        
-  con.include({
+    elements: {
+      "input[type=text]": "input",
+      ".item": "wrapper"
+    },
+    
+    init: function(){
+      this.proxyAll("render", "remove");
+      this.item.bind("update",  this.render);
+      this.item.bind("destroy", this.remove);
+    },
+    
     render: function(){
-      this.tasks.link(Task, function(){
-        var elements = $("#taskTemplate").tmpl(Task.all());
-      
-        $(this).empty();
-        $(this).append(elements);
-      });
-      this.tasks.render();
+      var elements = $("#taskTemplate").tmpl(this.item);
+      this.el.html(elements);
+      this.refreshElements();
+      return this;
     },
     
-    toggle: function(e){
-      var task  = $(e.target).item();
-      task.done = !task.done;
-      task.save();      
+    toggle: function(){
+      this.item.done = !this.item.done;
+      this.item.save();      
     },
     
-    destroy: function(e){
-      $(e.target).item().destroy();
+    destroy: function(){
+      this.item.destroy();
     },
     
-    edit: function(e){
-      var item = $(e.target).parents(".item");
-      item.addClass("editing");
-      item.find("input").focus();
+    edit: function(){
+      this.wrapper.addClass("editing");
+      this.input.focus();
     },
     
-    closeEdit: function(e){
-      if ( e.keyCode != 13 ) return;
-      $(e.target).parents(".item").removeClass("editing");
-      $(e.target).item().updateAttributes({name: $(e.target).val()});
+    blurOnEnter: function(e) {
+      if (e.keyCode == 13) e.target.blur();
     },
     
+    close: function(e){
+      this.wrapper.removeClass("editing");
+      this.item.updateAttributes({name: this.input.val()});
+    },
+    
+    remove: function(){
+      this.el.remove();
+    }
+  });
+  
+  window.AppController = Spine.Controller.create({
+    el: $("#tasks"),
+
+    events: {
+      "submit form":    "create",
+      "click  .clear":  "clear",
+      "render .items":  "renderCount"
+    },
+
+    elements: {
+      ".items":     "items",
+      ".countVal":  "count",
+      ".clear":     "clear",
+      "form input": "input"
+    },
+    
+    init: function(){
+      this.proxyAll("addOne", "addAll", "renderCount");
+      Task.bind("create",  this.addOne);
+      Task.bind("refresh", this.addAll);
+      Task.bind("refresh change", this.renderCount);
+      Task.fetch();
+    },
+    
+    addOne: function(e, task) {
+      var view = TaskController.inst({item: task || e});
+      this.items.append(view.render().el);
+    },
+
+    addAll: function() {
+      Task.each(this.addOne);
+    },
+        
     create: function(e){
       Task.create({name: this.input.val()});
       this.input.val("");
@@ -65,12 +101,13 @@
     },
     
     renderCount: function(){
-      this.count.text(Task.active().length);
+      var active = Task.active().length;
+      this.count.text(active);
+      
+      var inactive = Task.done().length;
+      this.clear[inactive ? "show" : "hide"]();
     }
   });
   
-  $(function(){
-    con.inst();
-  });
-  
-})(jQuery, Spine);
+  window.App = AppController.inst();
+});
