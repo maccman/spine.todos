@@ -1,7 +1,9 @@
 jQuery(function($){
   
-  window.TaskController = Spine.Controller.create({
+  window.Tasks = Spine.Controller.create({
     tag: "li",
+    
+    scoped: ["render", "remove"],
     
     events: {
       "change   input[type=checkbox]": "toggle",
@@ -17,7 +19,6 @@ jQuery(function($){
     },
     
     init: function(){
-      this.proxyAll("render", "remove");
       this.item.bind("update",  this.render);
       this.item.bind("destroy", this.remove);
     },
@@ -47,7 +48,7 @@ jQuery(function($){
       if (e.keyCode == 13) e.target.blur();
     },
     
-    close: function(e){
+    close: function(){
       this.wrapper.removeClass("editing");
       this.item.updateAttributes({name: this.input.val()});
     },
@@ -57,13 +58,14 @@ jQuery(function($){
     }
   });
   
-  window.AppController = Spine.Controller.create({
+  window.TaskApp = Spine.Controller.create({
     el: $("#tasks"),
+    
+    scoped: ["addOne", "addAll", "renderCount"],
 
     events: {
-      "submit form":    "create",
-      "click  .clear":  "clear",
-      "render .items":  "renderCount"
+      "submit form":   "create",
+      "click  .clear": "clear"
     },
 
     elements: {
@@ -74,15 +76,14 @@ jQuery(function($){
     },
     
     init: function(){
-      this.proxyAll("addOne", "addAll", "renderCount");
       Task.bind("create",  this.addOne);
       Task.bind("refresh", this.addAll);
       Task.bind("refresh change", this.renderCount);
       Task.fetch();
     },
     
-    addOne: function(e, task) {
-      var view = TaskController.inst({item: task || e});
+    addOne: function(task) {
+      var view = Tasks.inst({item: task});
       this.items.append(view.render().el);
     },
 
@@ -90,7 +91,7 @@ jQuery(function($){
       Task.each(this.addOne);
     },
         
-    create: function(e){
+    create: function(){
       Task.create({name: this.input.val()});
       this.input.val("");
       return false;
@@ -109,5 +110,5 @@ jQuery(function($){
     }
   });
   
-  window.App = AppController.inst();
+  window.App = TaskApp.inst();
 });
