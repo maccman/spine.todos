@@ -2,6 +2,10 @@
 
 Spine Todos is an example application for the [Spine](http://github.com/maccman/spine) JavaScript library.
 
+#Live Demo
+
+[Checkout the live demo](http://maccman.github.com/spine.todos/) in Safari/Chrome.
+
 #Features
 
 * Todo CRUD
