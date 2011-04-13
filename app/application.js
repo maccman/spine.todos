@@ -3,7 +3,7 @@ jQuery(function($){
   window.Tasks = Spine.Controller.create({
     tag: "li",
     
-    scoped: ["render", "remove"],
+    proxied: ["render", "remove"],
     
     events: {
       "change   input[type=checkbox]": "toggle",
@@ -61,7 +61,7 @@ jQuery(function($){
   window.TaskApp = Spine.Controller.create({
     el: $("#tasks"),
     
-    scoped: ["addOne", "addAll", "renderCount"],
+    proxied: ["addOne", "addAll", "renderCount"],
 
     events: {
       "submit form":   "create",
