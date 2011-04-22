@@ -83,7 +83,7 @@ jQuery(function($){
     },
     
     addOne: function(task) {
-      var view = Tasks.inst({item: task});
+      var view = Tasks.init({item: task});
       this.items.append(view.render().el);
     },
 
@@ -110,5 +110,5 @@ jQuery(function($){
     }
   });
   
-  window.App = TaskApp.inst();
+  window.App = TaskApp.init();
 });
