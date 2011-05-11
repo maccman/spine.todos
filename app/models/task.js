@@ -17,6 +17,6 @@ Task.extend({
   
   // Clear all done tasks.
   destroyDone: function(){
-    this.done().forEach(function(rec){ rec.destroy() });
+    jQuery(this.done()).each(function(i, rec){ rec.destroy(); });
   }
 });
