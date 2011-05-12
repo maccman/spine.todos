@@ -1,6 +1,6 @@
-Task = Spine.Model.setup("Task", ["name", "done"]);
+Task = Spine.Model.setup("Task", ["name", "done"])
 
-Task.extend(Spine.Model.Local);
+Task.extend(Spine.Model.Local)
 
 Task.extend
   active: ->
