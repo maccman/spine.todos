@@ -17,19 +17,18 @@ class Task extends Spine.Model
 class Tasks extends Spine.Controller
   events:
    "change   input[type=checkbox]": "toggle"
-   "click    .destroy":             "destroy"
+   "click    .destroy":             "remove"
    "dblclick .view":                "edit"
    "keypress input[type=text]":     "blurOnEnter"
    "blur     input[type=text]":     "close"
  
   elements:
     "input[type=text]": "input"
-    ".item": "wrapper"
 
   constructor: ->
     super
     @item.bind("update",  @render)
-    @item.bind("destroy", @remove)
+    @item.bind("destroy", @destroy)
   
   render: =>
     @replace($("#taskTemplate").tmpl(@item))
@@ -39,22 +38,19 @@ class Tasks extends Spine.Controller
     @item.done = !@item.done
     @item.save()
   
-  destroy: ->
+  remove: ->
     @item.destroy()
   
   edit: ->
-    @wrapper.addClass("editing")
+    @el.addClass("editing")
     @input.focus()
   
   blurOnEnter: (e) ->
-    if e.keyCode == 13 then e.target.blur()
+    if e.keyCode is 13 then e.target.blur()
   
   close: ->
-    @wrapper.removeClass("editing")
+    @el.removeClass("editing")
     @item.updateAttributes({name: @input.val()})
-  
-  remove: =>
-    @el.remove()
 
 class TaskApp extends Spine.Controller
   events:
