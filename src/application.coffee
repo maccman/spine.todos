@@ -15,8 +15,6 @@ class Task extends Spine.Model
     rec.destroy() for rec in @done()
 
 class Tasks extends Spine.Controller
-  tag: "li"
-    
   events:
    "change   input[type=checkbox]": "toggle"
    "click    .destroy":             "destroy"
@@ -34,7 +32,7 @@ class Tasks extends Spine.Controller
     @item.bind("destroy", @remove)
   
   render: =>
-    @html($("#taskTemplate").tmpl(@item))
+    @replace($("#taskTemplate").tmpl(@item))
     @
   
   toggle: ->
