@@ -7,6 +7,11 @@ Events =
       calls[name] or= []
       calls[name].push(callback)
     @
+    
+  one: (ev, callback) ->
+    @bind ev, ->
+      @unbind(ev, arguments.callee)
+      callback.apply(@, arguments)
 
   trigger: (args...) ->
     ev = args.shift()
@@ -15,8 +20,8 @@ Events =
     return false unless list
   
     for callback in list
-      if callback.apply(this, args) is false
-        break      
+      if callback.apply(@, args) is false
+        break
     true
 
   unbind: (ev, callback) ->
@@ -110,13 +115,16 @@ class Model extends Module
 
   @refresh: (values, options = {}) ->
     @records = {} if options.clear
-
-    for record in @fromJSON(values) 
+    records = @fromJSON(values)
+    
+    records = [records] unless isArray(records)
+    
+    for record in records
       record.newRecord    = false
       record.id           or= guid()
       @records[record.id] = record
 
-    @trigger('refresh')
+    @trigger('refresh', not options.clear and records)
     @
 
   @select: (callback) ->
@@ -193,6 +201,9 @@ class Model extends Module
       (new @(value) for value in objects)
     else
       new @(objects)
+      
+  @fromForm: ->
+    (new this).fromForm(arguments...)
 
   # Private
 
@@ -224,12 +235,20 @@ class Model extends Module
 
   load: (atts) ->
     for key, value of atts
-      @[key] = value
+      if typeof @[key] is 'function'
+        @[key](value)
+      else
+        @[key] = value
+    @
 
   attributes: ->
     result = {}
-    result[key] = @[key] for key in @constructor.attributes
-    result.id   = @id
+    for key in @constructor.attributes when key of @
+      if typeof @[key] is 'function'
+        result[key] = @[key]()
+      else
+        result[key] = @[key]
+    result.id = @id if @id
     result
 
   eql: (rec) ->
@@ -239,13 +258,13 @@ class Model extends Module
   save: ->
     error = @validate()
     if error
-      @trigger('error', @, error)
+      @trigger('error', error)
       return false
     
-    @trigger('beforeSave', @)
-    if @newRecord then @create() else @update()
-    @trigger('save', @)
-    @
+    @trigger('beforeSave')
+    record = if @newRecord then @create() else @update()
+    @trigger('save')
+    record
 
   updateAttribute: (name, value) ->
     @[name] = value
@@ -264,11 +283,11 @@ class Model extends Module
     @save()
   
   destroy: ->
-    @trigger('beforeDestroy', @)
+    @trigger('beforeDestroy')
     delete @constructor.records[@id]
     @destroyed = true
-    @trigger('destroy', @)
-    @trigger('change', @, 'destroy')
+    @trigger('destroy')
+    @trigger('change', 'destroy')
     @unbind()
     @
 
@@ -294,6 +313,12 @@ class Model extends Module
     
   toString: ->
     "<#{@constructor.className} (#{JSON.stringify(@)})>"
+      
+  fromForm: (form) ->
+    result = {}
+    for key in $(form).serializeArray()
+      result[key.name] = key.value
+    @load(result)
   
   exists: ->
     @id && @id of @constructor.records
@@ -301,22 +326,24 @@ class Model extends Module
   # Private
 
   update: ->
-    @trigger('beforeUpdate', @)
+    @trigger('beforeUpdate')
     records = @constructor.records
     records[@id].load @attributes()
     clone = records[@id].clone()
-    @trigger('update', clone)
-    @trigger('change', clone, 'update')
+    clone.trigger('update')
+    clone.trigger('change', 'update')
+    clone
 
   create: ->
-    @trigger('beforeCreate', @)
+    @trigger('beforeCreate')
     @id          = guid() unless @id
     @newRecord   = false    
     records      = @constructor.records
     records[@id] = @dup(false)
     clone        = records[@id].clone()
-    @trigger('create', clone)
-    @trigger('change', clone, 'create')
+    clone.trigger('create')
+    clone.trigger('change', 'create')
+    clone
   
   bind: (events, callback) ->
     @constructor.bind events, binder = (record) =>
@@ -328,17 +355,18 @@ class Model extends Module
         @constructor.unbind('unbind', unbinder)
     binder
   
-  trigger: ->
-    @constructor.trigger(arguments...)
+  trigger: (args...) ->
+    args.splice(1, 0, @)
+    @constructor.trigger(args...)
     
   unbind: ->
-    @trigger('unbind', @)
+    @trigger('unbind')
 
 class Controller extends Module
   @include Events
   @include Log
   
-  eventSplitter: /^(\w+)\s*(.*)$/
+  eventSplitter: /^(\S+)\s*(.*)$/
   tag: 'div'
   
   constructor: (options) ->
@@ -352,7 +380,7 @@ class Controller extends Module
 
     @el.addClass(@className) if @className
       
-    @destroy -> @el.remove()
+    @release -> @el.remove()
 
     @events = @constructor.events unless @events
     @elements = @constructor.elements unless @elements
@@ -362,11 +390,11 @@ class Controller extends Module
 
     super
      
-  destroy: (callback) =>
+  release: (callback) =>
     if typeof callback is 'function'
-      @bind 'destroy', callback
+      @bind 'release', callback
     else
-      @trigger 'destroy'
+      @trigger 'release'
       
   $: (selector) -> $(selector, @el)
       
@@ -432,6 +460,11 @@ unless typeof Object.create is 'function'
 
 isArray = (value) ->
   Object::toString.call(value) is '[object Array]'
+
+isBlank = (value) ->
+  return true unless value 
+  return false for key of value
+  true
   
 makeArray = (args) ->
   Array.prototype.slice.call(args, 0)
@@ -448,8 +481,9 @@ guid = ->
 Spine = @Spine   = {}
 module?.exports  = Spine
 
-Spine.version    = '2.0.1'
+Spine.version    = '1.0.5'
 Spine.isArray    = isArray
+Spine.isBlank    = isBlank
 Spine.$          = $
 Spine.Events     = Events
 Spine.Log        = Log
